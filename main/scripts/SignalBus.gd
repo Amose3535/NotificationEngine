@@ -1,2 +1,0 @@
-# SignalBus.gd
-extends Node
