@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://dmb8pmvmnvtwm"]
+
+[ext_resource type="Script" uid="uid://cemyav8sdgrln" path="res://addons/NotificationEngine/scripts/action.gd" id="1_yqitg"]
+
+[node name="Action" type="Button"]
+size_flags_horizontal = 3
+text = "Demo Button"
+script = ExtResource("1_yqitg")
