@@ -33,6 +33,7 @@ Shows customizable popup notifications (title, body, icon, actions) with smooth 
 
 ```gdscript
 var example_icon := preload(...)
+
 NotificationEngine.notify({
 	"title": "Hello!",						# NOT REQUIRED BUT HIGHLY SUGGESTED
 	"body": "This is a test notification.",	# OPTIONAL
@@ -46,4 +47,5 @@ NotificationEngine.notify({
 	],
 	"duration":5.5,							# OPTIONAL
 	"animation_duration":0.4				# OPTIONAL
-})```
+})
+
