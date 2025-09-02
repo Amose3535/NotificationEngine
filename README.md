@@ -48,4 +48,5 @@ NotificationEngine.notify({
 	"duration":5.5,							# OPTIONAL
 	"animation_duration":0.4				# OPTIONAL
 })
+```
 
