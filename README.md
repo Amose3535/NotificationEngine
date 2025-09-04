@@ -6,17 +6,17 @@ Shows customizable popup notifications (title, body, icon, actions) with smooth 
 ---
 
 ## ✨ Features
-- Global notification engine (autoload singleton).
-- Bottom-left / bottom-right alignment presets.
-- Title, body, optional icon.
-- Action buttons (with `id`, `label`, optional `icon`).
+- Global notification engine (autoload singleton) to access all its featues.
+- Bottom-left / bottom-right alignment presets for notifications.
+- Feature packed notifications: title, body, icon, actions, themes, duration.
+- Action buttons (with `id`, `label`, and an optional `icon`).
 - Signals for popup, popout, and action clicks.
 - Theming support:
   - Built-in `"default"` theme.
   - Pass your own `Theme` resource directly.
-- Safe defaults and payload validation.
-- Works out-of-the-box, no scene editing required.
-- Demo scene included to test payloads and learn usage.
+- Safe defaults and strong payload validation.
+- Works out-of-the-box, no scene editing required and easy to pick up.
+- Demo scene included to test payloads and easily learn usage.
 
 ---
 
@@ -32,7 +32,8 @@ Shows customizable popup notifications (title, body, icon, actions) with smooth 
 - The engine automatically creates a `CanvasLayer` root called `NotificationsRoot`.
 - Notifications are instantiated inside this layer and survive scene changes.
 - You can trigger notifications from anywhere by calling `NotificationEngine.notify()` with a payload dictionary.
-- You can get/set `NotificationEngine`'s settings like spacing and alignment through the built-in methods: `set_spacing()`,`set_alignment()` and `get_alignment()`
+- You can get/set `NotificationEngine`'s settings like spacing and alignment through the built-in methods: `set_spacing(new_spacing : float)`,`set_alignment(mode : SIDE)` and `get_alignment()`
+- You can access the following signals to have a greater control: `notif_popup(notification : Control)`, `notif_popout(notification : Control)`, and `notification_action(notification: Control, notif_id : int, action_id : String)`
 
 ---
 
