@@ -4,5 +4,6 @@
 
 [node name="Action" type="Button"]
 size_flags_horizontal = 3
+mouse_filter = 1
 text = "Demo Button"
 script = ExtResource("1_yqitg")

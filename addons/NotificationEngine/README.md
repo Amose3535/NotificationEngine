@@ -12,8 +12,7 @@ Shows customizable popup notifications (title, body, icon, actions) with smooth 
 - Signals for popup, popout, and action clicks.
 - Safe defaults and payload validation.
 - Works out-of-the-box, no scene editing required.
-
-- (FUTURE UPDATE) Theming support (apply a custom `Theme`).
+- Theming support trough custom theme or default string (apply a custom `Theme`).
 
 ---
 
@@ -44,6 +43,8 @@ NotificationEngine.notify({
 		},
 		{...} 				# OTHER ACTIONS (OPTIONAL)
 	],
-	"duration":5.5,							# OPTIONAL
+	"theme": <String|Theme> 				# OPTIONAL (supports strings for default themes: <"default", more coming soon>. And supports directly Themes)
+	"duration":5.5, 						# OPTIONAL
 	"animation_duration":0.4				# OPTIONAL
-})```
+})
+```

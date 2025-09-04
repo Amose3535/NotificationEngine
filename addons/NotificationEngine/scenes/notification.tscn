@@ -18,10 +18,8 @@ size_flags_vertical = 0
 
 [node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/Header"]
 layout_mode = 2
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_top = 2
-theme_override_constants/margin_right = 2
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_right = 8
 
 [node name="Title" type="RichTextLabel" parent="VBoxContainer/Header/MarginContainer"]
 visible = false
@@ -32,10 +30,8 @@ fit_content = true
 
 [node name="Body" type="MarginContainer" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 5
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 2
 
 [node name="BodyStack" type="VBoxContainer" parent="VBoxContainer/Body"]
 layout_mode = 2

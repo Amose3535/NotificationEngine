@@ -12,6 +12,7 @@ signal action_triggered(notification : Control, notif_id : int, action_id : Stri
 @onready var actions_container: HFlowContainer = $VBoxContainer/Body/BodyStack/actions_container
 
 
+
 @onready var notification_id : int = self.get_instance_id()
 
 #region Notification parameters
@@ -81,19 +82,26 @@ var animation_duration  : float = 0.3 # Animation length (s)
 #endregion
 
 var _started : bool = false
+var _timer : Timer
 
 func _ready() -> void:
-	# Do not rely on size here (layout may not be ready).
-	# We'll offset in start_notification() after 1 frame.
-	pass
+	connect("mouse_entered", _on_mouse_entered)
+	connect("mouse_exited", _on_mouse_exited)
+	# Create the timer to be used later on
+	_timer = Timer.new()
+	_timer.one_shot = true
+	self.add_child(_timer)
 
 func start_notification() -> void:
 	if _started:
 		return
+	# Saves a local copy of the alignment to prevent animations mismatch during the whole process
+	var alignment = NotificationEngine.get_alignment()
 	_started = true
 	
+	# Saves a local copy of the window size
 	var window_size : Vector2 = get_window().get_visible_rect().size
-	match NotificationEngine.LOCATION:
+	match alignment:
 		NotificationEngine.SIDE.BOTTOM_RIGHT:
 			# Start off-screen on the right
 			position = Vector2(window_size.x, window_size.y - size.y - NotificationEngine.spacing)
@@ -108,17 +116,15 @@ func start_notification() -> void:
 	# Fade from transparent
 	modulate = Color(1, 1, 1, 0)
 	
-	
-	
 	# IN: slide + fade in (EASE_OUT feels more natural)
 	var final_in_x_pos : float = 0
 	var in_tween : Tween = get_tree().create_tween()
 	in_tween.set_ease(Tween.EASE_OUT)
 	
 	# Determine final "in" position based on L/R preset
-	if NotificationEngine.LOCATION == NotificationEngine.SIDE.BOTTOM_RIGHT:
+	if alignment == NotificationEngine.SIDE.BOTTOM_RIGHT:
 		final_in_x_pos = position.x - size.x
-	elif NotificationEngine.LOCATION == NotificationEngine.SIDE.BOTTOM_LEFT:
+	elif alignment == NotificationEngine.SIDE.BOTTOM_LEFT:
 		final_in_x_pos = position.x + size.x
 	
 	in_tween.tween_property(self, "position:x", final_in_x_pos, animation_duration)
@@ -126,10 +132,11 @@ func start_notification() -> void:
 	in_tween.tween_property(self, "modulate", Color(1, 1, 1, 1), animation_duration)
 	
 	# Emit popup signal (duration info for listeners)
-	NotificationEngine.emit_signal("notif_popup", duration_seconds)
+	NotificationEngine.emit_signal("notif_popup", self)
 	
-	# Visible for duration
-	await get_tree().create_timer(duration_seconds).timeout
+	# Start pausable timer
+	_timer.start(duration_seconds)
+	await _timer.timeout
 	
 	# OUT: slide right + fade out (EASE_IN for a clean exit)
 	var final_out_x_pos : float = 0
@@ -137,9 +144,9 @@ func start_notification() -> void:
 	out_tween.set_ease(Tween.EASE_IN)
 	
 		# Determine final "out" position based on L/R preset
-	if NotificationEngine.LOCATION == NotificationEngine.SIDE.BOTTOM_RIGHT:
+	if alignment == NotificationEngine.SIDE.BOTTOM_RIGHT:
 		final_out_x_pos = position.x + size.x
-	elif NotificationEngine.LOCATION == NotificationEngine.SIDE.BOTTOM_LEFT:
+	elif alignment == NotificationEngine.SIDE.BOTTOM_LEFT:
 		final_out_x_pos = position.x - size.x
 	
 	out_tween.tween_property(self, "position:x", final_out_x_pos, animation_duration)
@@ -149,8 +156,14 @@ func start_notification() -> void:
 	await out_tween.finished
 	
 	# Emit popout signal, then ask the engine to free and reflow
-	NotificationEngine.emit_signal("notif_popout")
-	NotificationEngine.free_notification(self)
+	NotificationEngine.emit_signal("notif_popout", self)
+	NotificationEngine._free_notification(self)
+
+func _on_mouse_entered() -> void:
+	_timer.paused = true
+
+func _on_mouse_exited() -> void:
+	_timer.paused = false
 
 func _on_action_button_pressed(action_id : String) -> void:
 	self.emit_signal("action_triggered",self,notification_id,action_id)
