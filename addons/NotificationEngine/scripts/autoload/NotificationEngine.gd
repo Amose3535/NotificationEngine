@@ -107,8 +107,6 @@ func _extract_payload(payload : Dictionary, target_notif : Control) -> void:
 	#		unless you know what you're doing.
 	#		(i'm watching you)
 	
-	# NOTE 2:
-	#		I COULD use a match payload.keys(): statement but i won't for now
 	
 	# Set the title
 	if payload.has("title"):
