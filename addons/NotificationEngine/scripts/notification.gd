@@ -1,15 +1,17 @@
 # Notification.gd
 extends PanelContainer
-#class_name NotificationPanel
+class_name NotificationView
 
 const ACTION_BUTTON = preload("res://addons/NotificationEngine/scenes/action_button.tscn")
 
 signal action_triggered(notification : Control, notif_id : int, action_id : String)
 
-@onready var title: RichTextLabel = $VBoxContainer/Header/MarginContainer/Title
+@onready var title: RichTextLabel = $VBoxContainer/Header/MarginContainer/HBoxContainer/Title
+@onready var close: Button = $VBoxContainer/Header/MarginContainer/HBoxContainer/close
 @onready var image: TextureRect = $VBoxContainer/Body/BodyStack/BodyContent/Icon
 @onready var body: RichTextLabel = $VBoxContainer/Body/BodyStack/BodyContent/Body
 @onready var actions_container: HFlowContainer = $VBoxContainer/Body/BodyStack/actions_container
+@onready var audio_container: Node = $AudioContainer
 
 
 
@@ -55,6 +57,10 @@ var actions : Array:    # ex: [{ "id":"ok", "label":"OK", "icon":icon_texture}]
 						new_button.text = element["label"]
 						new_button.id =  element["id"]
 						
+						# Allow the button to dismiss a notification on click (OPT)
+						if element.has("dismiss") and element.get("dismiss") is bool:
+							new_button.can_dismiss = element["dismiss"]
+						
 						# Set the icon only if the action element has an icon part (makin icon optional)
 						if element.has("icon") and element.get("icon") is Texture2D:
 							new_button.icon = element["icon"]
@@ -75,29 +81,60 @@ var actions : Array:    # ex: [{ "id":"ok", "label":"OK", "icon":icon_texture}]
 		if container_isvalid:
 			actions_container.show()
 
-var duration_seconds    : float = 3.0 # Total notification lifespan (s)
+var duration_seconds : float = 3.0 # Total notification lifespan (s)
 
-var animation_duration  : float = 0.3 # Animation length (s)
+var animation_duration : float = 0.3 # Animation length (s)
 
+var sounds : Dictionary:
+	set(new_sounds):
+		# Cleans the actions container from all possible residues
+		_in_player = null
+		_out_player = null
+		_close_player = null
+		_action_player = null
+		for child in audio_container.get_children(): child.queue_free()
+		
+		_apply_sound("in",new_sounds,sounds)
+		
+		_apply_sound("out",new_sounds,sounds)
+		
+		_apply_sound("close",new_sounds,sounds)
+		
+		_apply_sound("action",new_sounds,sounds)
 #endregion
 
 var _started : bool = false
+var alignment
+var _ending : bool = false
 var _timer : Timer
+# Audio
+var _in_player : AudioStreamPlayer
+var _out_player : AudioStreamPlayer
+var _close_player : AudioStreamPlayer
+var _action_player : AudioStreamPlayer
 
 func _ready() -> void:
+	# Connect signals such as mouse_entered, exited and the pressed signal from the close button.
 	connect("mouse_entered", _on_mouse_entered)
 	connect("mouse_exited", _on_mouse_exited)
-	# Create the timer to be used later on
+	close.connect("pressed",_on_close_pressed)
+	# Create the timer to be used later on.
 	_timer = Timer.new()
 	_timer.one_shot = true
 	self.add_child(_timer)
 
+
 func start_notification() -> void:
-	if _started:
-		return
-	# Saves a local copy of the alignment to prevent animations mismatch during the whole process
-	var alignment = NotificationEngine.get_alignment()
+	if _started: return
 	_started = true
+	var persistent : bool = false
+	if duration_seconds <= 0.0: persistent = true
+	# Saves a local copy of the alignment to prevent animations mismatch during the whole process
+	alignment = NotificationEngine.get_alignment()
+	
+	# Play popup sound
+	if _in_player != null:
+		_in_player.play()
 	
 	# Saves a local copy of the window size
 	var window_size : Vector2 = get_window().get_visible_rect().size
@@ -108,7 +145,7 @@ func start_notification() -> void:
 		
 		NotificationEngine.SIDE.BOTTOM_LEFT:
 			# Start off-screen on the left
-			position = Vector2( -size.x, window_size.y - size.y - NotificationEngine.spacing)
+			position = Vector2(-size.x, window_size.y - size.y - NotificationEngine.spacing)
 	
 	# Ensure layout is ready (size is valid)
 	await get_tree().process_frame
@@ -135,8 +172,20 @@ func start_notification() -> void:
 	NotificationEngine.emit_signal("notif_popup", self)
 	
 	# Start pausable timer
-	_timer.start(duration_seconds)
-	await _timer.timeout
+	if !persistent:
+		_timer.start(duration_seconds)
+		print(duration_seconds)
+		await _timer.timeout
+		
+		end_notification()
+
+func end_notification() -> void:
+	if _ending: return
+	_ending = true
+	
+	# Play popout sound
+	if _out_player != null:
+		_out_player.play()
 	
 	# OUT: slide right + fade out (EASE_IN for a clean exit)
 	var final_out_x_pos : float = 0
@@ -159,11 +208,100 @@ func start_notification() -> void:
 	NotificationEngine.emit_signal("notif_popout", self)
 	NotificationEngine._free_notification(self)
 
+func dismiss() -> void:
+	if _close_player != null:
+		_close_player.play()
+	end_notification()
+
+# key: "in" | "out" | "action" | "close"
+# new_sounds: new dict (payload.sounds)
+# prev: prev dict (es. la tua prop `sounds`)
+# global (opz): global fallback (if present, otherwise will use previous as fallback and nun more)
+func _apply_sound(key: String, new_sounds: Dictionary, prev: Dictionary, global: Dictionary = {}) -> void:
+	# 1) helper to access the correct player
+	var player
+	match key:
+		"in": player=_in_player
+		"out": player=_out_player
+		"action": player=_action_player
+		"close": player=_close_player
+		_:
+			if NotificationEngine.LOGGING:
+				push_warning("[NotificationEngine/Notification] | Sound module: unknown key '%s' (ignored)" % key)
+			return
+	
+	# 2) kill/clear previous player precedente for that key
+	if is_instance_valid(player):
+		player.queue_free()
+	match key:
+		"in": _in_player = null
+		"out": _out_player = null
+		"action": _action_player = null
+		"close": _close_player = null
+	
+	# internal reusable function to create the player
+	var make_player = func _make_player(stream: AudioStream) -> void:
+		var p := AudioStreamPlayer.new()
+		p.name = "sound_%s" % key
+		p.stream = stream
+		# opt: set the bus if used
+		# p.bus = "UI"
+		audio_container.add_child(p)
+		match key:
+			"in": _in_player = p
+			"out": _out_player = p
+			"action": _action_player = p
+			"close": _close_player = p
+	
+	# 3) APPLY / CLEAR / INVALID → fallback
+	var has_key := new_sounds.has(key)
+	if has_key:
+		var v = new_sounds[key]
+		if v is AudioStream:
+			make_player.call(v)
+			if NotificationEngine.LOGGING:
+				print("[NotificationEngine/Notification] | Sound %s: APPLY (payload)" % key)
+			return
+		elif v == null:
+			# Explicit CLEAR: no fallback
+			if NotificationEngine.LOGGING:
+				print("[NotificationEngine/Notification] | Sound %s: CLEAR (null)" % key)
+			return
+		else:
+			if NotificationEngine.LOGGING:
+				push_warning("[NotificationEngine/Notification] | Sound %s: INVALID_TYPE (%s) → fallback" % [key, typeof(v)])
+			# continue and then fallback
+	
+	# 4) Fallback: prev → global → silence
+	if prev.has(key) and prev[key] is AudioStream:
+		make_player.call(prev[key])
+		if NotificationEngine.LOGGING:
+			print("[NotificationEngine/Notification] | Sound %s: APPLY (prev)" % key)
+		return
+	
+	# There is a sound for this key
+	if global != null and global.has(key) and global[key] is AudioStream:
+		make_player.call(global[key])
+		if NotificationEngine.LOGGING:
+			print("[NotificationEngine/Notification] | Sound %s: APPLY (global)" % key)
+		return
+	
+	# No sound for this key
+	if NotificationEngine.LOGGING:
+		print("[NotificationEngine/Notification] | Sound %s: SILENCE (no fallback)" % key)
+
 func _on_mouse_entered() -> void:
 	_timer.paused = true
 
 func _on_mouse_exited() -> void:
 	_timer.paused = false
 
-func _on_action_button_pressed(action_id : String) -> void:
+func _on_close_pressed() -> void:
+	dismiss()
+
+func _on_action_button_pressed(action_id : String, can_dismiss : bool) -> void:
 	self.emit_signal("action_triggered",self,notification_id,action_id)
+	if _action_player != null:
+		_action_player.play()
+	if can_dismiss:
+		dismiss()

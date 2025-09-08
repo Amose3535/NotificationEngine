@@ -1,4 +1,5 @@
 # NotificationEngine.gd
+@tool
 extends Node
 
 #region SIGNALS
@@ -10,10 +11,18 @@ signal notification_action(notification: Control, notif_id : int, action_id : St
 #endregion
 
 #region INTERNALS
+var DEFAULT_PAYLOAD : Payload = null
+var DEFAULT_PAYLOAD_PATH : String = "user://NotificationEngine/DEFAULT_PAYLOAD.tres"
+
 enum SIDE {BOTTOM_RIGHT,BOTTOM_LEFT}
 var LOCATION : SIDE = SIDE.BOTTOM_RIGHT
+
 const NOTIFICATION : PackedScene = preload("res://addons/NotificationEngine/scenes/notification.tscn")
+
 const THEMES := {"default":preload("res://addons/NotificationEngine/resources/themes/default.tres")}
+
+var LOGGING : bool = false
+
 const CHECK_INTERVAL : float = 0.5
 var CURRENT_TIME : float = 0.0
 #endregion
@@ -37,6 +46,17 @@ func _ready() -> void:
 	else:
 		print("NotificationsRoot not instantiated: node already exists.")
 		root = get_tree().root.get_node("NotificationsRoot")
+	
+	# If the directory with the useful files doesn't exist (deleted or first run)
+	if !DirAccess.dir_exists_absolute(DEFAULT_PAYLOAD_PATH.get_base_dir()):
+		# Create the directory for all the useful files to be saved in
+		DirAccess.make_dir_absolute(DEFAULT_PAYLOAD_PATH.get_base_dir())
+	
+	# Get default Payload if present
+	if FileAccess.file_exists(DEFAULT_PAYLOAD_PATH):
+		var p_candidate = load(DEFAULT_PAYLOAD_PATH)
+		# Safe payload extraction
+		DEFAULT_PAYLOAD = Payload.new(p_candidate)
 
 func _process(delta: float) -> void:
 	CURRENT_TIME += delta
@@ -56,8 +76,9 @@ func _process(delta: float) -> void:
 		if total_y + (notification_number - 1) * spacing > get_window().get_visible_rect().size.y:
 			push_warning("VISIBILITY WARNING: The notification stack exceeds viewport height.")
 
+#region API
 # API for notification calls
-func notify(payload : Dictionary) -> void:
+func notify(payload : Variant) -> void:
 	# 1) Create the new notification node
 	var new_notif : Control = NOTIFICATION.instantiate()
 	
@@ -71,24 +92,60 @@ func notify(payload : Dictionary) -> void:
 	#    (prevents crashes and/or incorrect formatting)
 	await get_tree().process_frame
 	
-	# 5) Unpack payload
-	_extract_payload(payload, new_notif)
+	# 5) Apply default payload only if there is one applied
+	if DEFAULT_PAYLOAD != null:
+		_extract_payload(DEFAULT_PAYLOAD, new_notif)
+	else:
+		if LOGGING:
+			print("[NotificationEngine] | Notify: Default payload missing; skipping entirely.")
 	
-	# 6) Wait 1 frame so size.x/size.y are correct before positioning/tweening
+	# 6) Override default payload with custom one
+	_extract_payload(payload, new_notif)
+	#print(payload["sounds"]) # OK
+	#print(new_notif.sounds) # NOT OK!!! => Error during extraction
+	
+	# 7) Wait 1 frame so size.x/size.y are correct before positioning/tweening
 	await get_tree().process_frame
 	
-	# 7) Connect action notification signal to engine's function for re-emission
+	# 8) Connect action notification signal to engine's function for re-emission
 	new_notif.connect("action_triggered",_on_notification_action)
 	
-	# 8) Vertical absolute reflow for ALL items (including the new one)
+	# 9) Vertical absolute reflow for ALL items (including the new one)
 	_reflow_bottom_to_top()
 	
-	# 9) Start the notification (in → wait → out → free)
+	# 10) Start the notification (in → wait → out → free)
 	new_notif.start_notification()
+
+# API for setting default payload
+func set_default_payload(payload : Variant) -> void:
+	# NOTE: I don't need to filter the payload variant because when i _init a Payload class with a parameter, it calls 
+	#       NotificationEngine._extract_payload() which does all the heavy lifting by itself
+	#       (+ removes both here and in Payload redundant code)
+	
+	# Create a Payload Resource with all the correct settings through its _init func
+	var candidate : Payload = Payload.new(payload)
+	# Try tyo save my Payload candidate inside the default path and store the operation result
+	var result : Error = ResourceSaver.save(candidate,DEFAULT_PAYLOAD_PATH)
+	# If the result is OK then continue, otherwise push an error and return early
+	if result != OK:
+		push_error("ResourceSaver couldn't save ",candidate," to ",DEFAULT_PAYLOAD_PATH)
+		return
+	DEFAULT_PAYLOAD = candidate
+
+# API for clearing the default payload
+func clear_default_payload() -> void:
+	DEFAULT_PAYLOAD = null
+	if FileAccess.file_exists(DEFAULT_PAYLOAD_PATH):
+		if DirAccess.remove_absolute(DEFAULT_PAYLOAD_PATH) != OK:
+			push_error("Unable to remove %s"%DEFAULT_PAYLOAD_PATH)
 
 # API for setting the spacing (reflows automatically through spacing's setter
 func set_spacing(new_spacing : float) -> void:
 	spacing = new_spacing
+
+# API for getting the spacing
+func get_spacing() -> int:
+	return spacing
 
 # API for setting alignment (NOTE: notification alignment is applied only to the NEXT notifications)
 func set_alignment(mode : SIDE) -> void:
@@ -98,94 +155,150 @@ func set_alignment(mode : SIDE) -> void:
 # API for getting alignment
 func get_alignment() -> SIDE:
 	return LOCATION
+#endregion
 
-# Extracts all payload parameters onto the target notification in a modular manner
-func _extract_payload(payload : Dictionary, target_notif : Control) -> void:
+# Extracts all payload parameters onto the target notification in a modular manner.
+# NOTE: Remember! If the key is present but the value then set it anyway. If the key is not present, skip entirely.
+func _extract_payload(payload : Variant, target : Variant) -> void:
+	if !(target is Payload) and !(target is NotificationView):
+		push_error("[NotificationEngine] | Invalid target for '_extract_payload': target of type %s and class %s was assigned!"%[type_string(typeof(target)),target.get_class()])
+		return
 	# NOTE: 
-	#		The notification scene hides every customizable element until it is set through the setter.
+	#		The notification scene hides every customizable element until it is set through the setter of that specific parameter.
 	#		Setting ANY parameter (other than the two durations) WILL make that element visible so don't do what i did for "title"
 	#		unless you know what you're doing.
 	#		(i'm watching you)
-	
-	
-	# Set the title
-	if payload.has("title"):
-		var title_candidate := payload.get("title")
-		if title_candidate is String and (title_candidate != "" or title_candidate != null):
-			target_notif.title_content = title_candidate
-	else:
-		target_notif.title_content = "No title provided"
-	
-	# Set the icon
-	if payload.has("icon"):
-		var icon_candidate := payload.get("icon")
-		if icon_candidate is Texture2D and icon_candidate != null:
-			target_notif.icon = icon_candidate
-	
-	# Set the body
-	if payload.has("body"):
-		var body_candidate := payload.get("body")
-		if body_candidate is String:
-			target_notif.body_content = body_candidate
-	
-	# Set the actions
-	if payload.has("actions"):
-		var actions_candidate := payload.get("actions")
-		if actions_candidate is Array:
-			target_notif.actions = actions_candidate
-	
-	# Set the theme
-	if payload.has("theme"):
-		var theme_candidate := payload.get("theme")
-		# Check wether the format is String
-		if theme_candidate is String:
-			# If it is, check if the wanted theme string is present in the presets
-			if THEMES.has(theme_candidate):
-				# If it is, apply the wanted theme to the target notification
-				target_notif.theme = THEMES[theme_candidate]
+	if payload is Dictionary:
 		
-		# Check wether the format is Theme
-		if theme_candidate is Theme:
-			# If so apply that theme directly to the target notification
-			target_notif.theme = theme_candidate
+		# Set the title
+		if payload.has("title"):
+			var title_candidate = payload.get("title")
+			if title_candidate is String:
+				target.title_content = title_candidate
+			elif title_candidate == null:
+				target.title_candidate = ""
+				if LOGGING:
+					print("[NotificationEngine] | Title module: Title is empty.")
+			else:
+				push_warning("[NotificationEngine] | Title module: Invalid title module: Content is not string or null. Disregarding content.")
+		else:
+			if LOGGING:
+				print("[NotificationEngine] | Title module: No title module present; skipping.")
+		
+		# Set the icon
+		if payload.has("icon"):
+			var icon_candidate = payload.get("icon")
+			if icon_candidate is Texture2D:
+				target.icon = icon_candidate
+			elif icon_candidate == null:
+				target.icon = null
+				if LOGGING:
+					print("[NotificationEngine] | Icon module: Icon is empty.")
+			else:
+				push_warning("[NotificationEngine] | Icon module: Invalid icon module, disregarding content.")
+		else:
+			if LOGGING:
+				print("[NotificationEngine] | Icon module: No icon module present; skipping.")
+		
+		# Set the body
+		if payload.has("body"):
+			var body_candidate = payload.get("body")
+			if body_candidate is String:
+				target.body_content = body_candidate
+			elif body_candidate == null:
+				target.body_content = ""
+				if LOGGING:
+					print("[NotificationEngine] | Body module: Body is empty.")
+			else:
+				push_warning("[NotificationEngine] | Invalid body module: Content is not string. Disregarding content.")
+		else:
+			if LOGGING:
+				print("[NotificationEngine] | Body module: No body module present; skipping.")
+		
+		# Set the actions
+		if payload.has("actions"):
+			var actions_candidate = payload.get("actions")
+			if actions_candidate is Array and actions_candidate.size() > 0:
+				target.actions = actions_candidate
+			elif actions_candidate == null or (actions_candidate is Array and actions_candidate.size() == 0):
+				target.actions = []
+				if LOGGING:
+					print("[NotificationEngine] | Actions module: Actions is empty.")
+			else:
+				push_warning("[NotificationEngine] | Invalid actions module, disregarding content.")
+		else:
+			if LOGGING:
+				print("[NotificationEngine] | Actions module: No actions module present; skipping.")
+		
+		# Set the theme
+		if payload.has("theme"):
+			var theme_candidate = payload.get("theme")
+			# Check wether the format is String
+			if theme_candidate is String:
+				# If it is, check if the wanted theme string is present in the presets
+				if THEMES.has(theme_candidate):
+					# If it is, apply the wanted theme to the target notification
+					target.theme = THEMES[theme_candidate]
+				else:
+					push_warning("[NotificationEngine] | Theme module: Invalid built-in theme name, disregarding content.")
+			# Check wether the format is Theme
+			elif theme_candidate is Theme:
+				# If so apply that theme directly to the target notification
+				target.theme = theme_candidate
+			elif theme_candidate == null:
+				target.theme = null
+				if LOGGING:
+					print("[NotificationEngine] | Theme module: Theme is empty.")
+			else:
+				push_warning("[NotificationEngine] | Theme module: Invalid format for theme: %s, skipping module."%type_string(typeof(theme_candidate)))
+		else:
+			if LOGGING:
+				print("[NotificationEngine] | Theme module: No theme module present; skipping.")
+		
+		# Set the sounds
+		if payload.has("sounds"):
+			var sounds_candidate = payload.get("sounds")
+			if sounds_candidate is Dictionary:
+				target.sounds = sounds_candidate
+			elif sounds_candidate == null or (sounds_candidate is Dictionary and sounds_candidate.keys().size() == 0):
+				target.sounds = {}
+				if LOGGING:
+					print("[NotificationEngine] | Sounds module: Sounds is empty.")
+			else:
+				push_warning("[NotificationEngine] | Sounds module: Invalid sounds module, disregarding content.")
+		else:
+			if LOGGING:
+				print("[NotificationEngine] | Sounds module: No sounds module present; skipping.")
+		
+		# Set the duration
+		if payload.has("duration"):
+			var duration_candidate = payload.get("duration")
+			target.duration_seconds = float(duration_candidate)
+		else:
+			if LOGGING:
+				print("[NotificationEngine] | Duration module: No duration module present; skipping.")
+		
+		# Set the animations duration
+		if payload.has("animation_duration"):
+			var anim_dur_candidate = payload.get("animation_duration")
+			target.animation_duration = float(anim_dur_candidate)
+		else:
+			if LOGGING:
+				print("[NotificationEngine] | Animation duration module: No animation duration module present; skipping.")
 	
-	# Set the duration
-	if payload.has("duration"):
-		var duration_candidate := payload.get("duration")
-		match typeof(duration_candidate):
-			2: # int
-				if duration_candidate > 0:
-					target_notif.duration_seconds = float(duration_candidate)
-				
-			
-			3: # float
-				if duration_candidate > 0.0:
-					target_notif.duration_seconds = duration_candidate
-			
-			4: # String
-				if (duration_candidate as String).is_valid_float():
-					if (duration_candidate as String).to_float() > 0.0:
-						target_notif.duration_seconds = (duration_candidate as String).to_float()
 	
-	# Set the animations duration
-	if payload.has("animation_duration"):
-		var anim_dur_candidate := payload.get("animation_duration")
-		match typeof(anim_dur_candidate):
-			2: # int
-				if anim_dur_candidate > 0:
-					target_notif.animation_duration = float(anim_dur_candidate)
-			
-			3: # float
-				if anim_dur_candidate > 0:
-					target_notif.animation_duration = anim_dur_candidate
-			
-			4: # String
-				if (anim_dur_candidate as String).is_valid_float():
-					if (anim_dur_candidate as String).to_float() > 0.0:
-						target_notif.animation_duration = (anim_dur_candidate as String).to_float()
+	elif payload is Payload: # A Payload class is a complete snapshot of Payload so it only makes sense to add EVERY field 
+		target.title_content = payload.title_content
+		target.icon = payload.icon 
+		target.body_content = payload.body_content 
+		target.actions = payload.actions
+		target.theme = payload.theme
+		target.sounds = payload.sounds
+		target.duration_seconds = payload.duration_seconds
+		target.animation_duration = payload.animation_duration
 
 # Frees the notification and reflows the others (bottom → top)
-func _free_notification(notif : Node) -> void:
+func _free_notification(notif : NotificationView) -> void:
 	if not is_instance_valid(notif):
 		return
 	if root == null:
@@ -194,6 +307,19 @@ func _free_notification(notif : Node) -> void:
 	# Disconnect "action_triggered" from on_notification_action_pressed to avoid possible errors
 	if notif.is_connected("action_triggered", _on_notification_action):
 		notif.disconnect("action_triggered",_on_notification_action)
+	
+	# NOTE: This approach won't work to allow the sound to end
+	#if notif._in_player.playing:
+	#	await notif._in_player.finished
+	#
+	#if notif._out_player.call_deferred("get","playing"):
+	#	await notif._out_player.finished
+	#
+	#if notif._close_player.playing:
+	#	await notif._close_player.finished
+	#
+	#if notif._action_player.playing:
+	#	await notif._action_player.finished
 	
 	# Defer the free to avoid modifying the tree mid-iteration
 	notif.call_deferred("queue_free")

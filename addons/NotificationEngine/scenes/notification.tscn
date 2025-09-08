@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://dbyyvklc6o551"]
+[gd_scene load_steps=3 format=3 uid="uid://dbyyvklc6o551"]
 
 [ext_resource type="Script" uid="uid://ihxn6jxxfi2p" path="res://addons/NotificationEngine/scripts/notification.gd" id="1_tmvfg"]
+[ext_resource type="Texture2D" uid="uid://co5xy240o7f36" path="res://addons/NotificationEngine/resources/assets/x.png" id="2_ouuy4"]
 
 [node name="Notification" type="PanelContainer"]
 offset_right = 427.0
@@ -18,15 +19,24 @@ size_flags_vertical = 0
 
 [node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/Header"]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_right = 8
+theme_override_constants/margin_left = 5
 
-[node name="Title" type="RichTextLabel" parent="VBoxContainer/Header/MarginContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/Header/MarginContainer"]
+layout_mode = 2
+
+[node name="Title" type="RichTextLabel" parent="VBoxContainer/Header/MarginContainer/HBoxContainer"]
 visible = false
 layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 1
 bbcode_enabled = true
+text = "Demo text"
 fit_content = true
+
+[node name="close" type="Button" parent="VBoxContainer/Header/MarginContainer/HBoxContainer"]
+layout_mode = 2
+icon = ExtResource("2_ouuy4")
+flat = true
 
 [node name="Body" type="MarginContainer" parent="VBoxContainer"]
 layout_mode = 2
@@ -42,8 +52,6 @@ layout_mode = 2
 [node name="Icon" type="TextureRect" parent="VBoxContainer/Body/BodyStack/BodyContent"]
 visible = false
 layout_mode = 2
-size_flags_horizontal = 3
-expand_mode = 4
 stretch_mode = 4
 
 [node name="Body" type="RichTextLabel" parent="VBoxContainer/Body/BodyStack/BodyContent"]
@@ -58,3 +66,5 @@ fit_content = true
 [node name="actions_container" type="HFlowContainer" parent="VBoxContainer/Body/BodyStack"]
 visible = false
 layout_mode = 2
+
+[node name="AudioContainer" type="Node" parent="."]
