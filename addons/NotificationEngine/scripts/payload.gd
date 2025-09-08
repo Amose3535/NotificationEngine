@@ -50,7 +50,7 @@ func to_dict() -> Dictionary:
 	# Add theme
 	if theme != null:
 		candidate_dict["theme"] = theme
-
+	
 	if sounds != null:
 		candidate_dict["sounds"] = sounds
 	
