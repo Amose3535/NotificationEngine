@@ -102,7 +102,9 @@ MIT License. Free to use, modify and share.
 
 ---
 
-# 🆕 Changelog (for GitHub)
+
+
+# 🆕 Changelog from v1.0.1
 - Added **Payload Resource** support (`.tres`) as reusable snapshots.  
 - Added **default payload** save/load/clear support.  
 - Added **sticky notifications** (`duration <= 0`).  
