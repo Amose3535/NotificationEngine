@@ -1,0 +1,209 @@
+[gd_scene load_steps=3 format=3 uid="uid://cks22jwvd1qnt"]
+
+[ext_resource type="Script" uid="uid://b68l074s8xern" path="res://addons/NotificationEngine/examples/tests/test.gd" id="1_mgvk7"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_l6sho"]
+load_path = "res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex"
+
+[node name="Test" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_mgvk7")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -189.0
+offset_top = -300.0
+offset_right = 189.0
+offset_bottom = 301.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "CUSTOMIZE THE NOTIFICATION:"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TitleContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/TitleContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "Title:"
+
+[node name="title" type="LineEdit" parent="PanelContainer/MarginContainer/VBoxContainer/TitleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Demo Title"
+placeholder_text = "Insert title"
+
+[node name="BodyContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/BodyContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_vertical = 0
+text = "Body:"
+
+[node name="body" type="TextEdit" parent="PanelContainer/MarginContainer/VBoxContainer/BodyContainer"]
+custom_minimum_size = Vector2(100, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "[p align=center]Demo paragraph[/p]
+[color=lime]Demo color[/color]"
+placeholder_text = "Insert body"
+
+[node name="IconContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/IconContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_vertical = 0
+text = "Icon:"
+
+[node name="icon" type="OptionButton" parent="PanelContainer/MarginContainer/VBoxContainer/IconContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+selected = 0
+item_count = 2
+popup/item_0/text = "None"
+popup/item_0/id = 0
+popup/item_1/text = "Default Icon"
+popup/item_1/icon = SubResource("CompressedTexture2D_l6sho")
+popup/item_1/id = 1
+
+[node name="ActionsContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/ActionsContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_vertical = 0
+text = "Actions:"
+
+[node name="actions" type="TextEdit" parent="PanelContainer/MarginContainer/VBoxContainer/ActionsContainer"]
+custom_minimum_size = Vector2(100, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "[{\"id\":\"act_1\",\"label\":\"ACTN1\"},
+{\"id\":\"act_2\",\"label\":\"Shitass\"}]"
+placeholder_text = "[{\"id\":\"act_1\",\"label\":\"ACTN1\"},
+{\"id\":\"ac_2\",\"label\":\"2nd Actn\"},
+{...}]"
+
+[node name="ThemeContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/ThemeContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_vertical = 0
+text = "Theme:"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/ThemeContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="theme_opt" type="OptionButton" parent="PanelContainer/MarginContainer/VBoxContainer/ThemeContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+selected = 0
+item_count = 3
+popup/item_0/text = "None (Godot Default)"
+popup/item_0/id = 0
+popup/item_1/text = "Default Theme"
+popup/item_1/id = 1
+popup/item_2/text = "Custom Theme"
+popup/item_2/id = 2
+
+[node name="theme_custom" type="LineEdit" parent="PanelContainer/MarginContainer/VBoxContainer/ThemeContainer/VBoxContainer"]
+layout_mode = 2
+placeholder_text = "Custom theme path (if used)"
+
+[node name="DurationContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/DurationContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_vertical = 0
+text = "Duration:"
+
+[node name="duration" type="LineEdit" parent="PanelContainer/MarginContainer/VBoxContainer/DurationContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Insert duration (in seconds)"
+
+[node name="AnimationDurationContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/AnimationDurationContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_vertical = 0
+text = "Anim. Dur.:"
+
+[node name="animation_duration" type="LineEdit" parent="PanelContainer/MarginContainer/VBoxContainer/AnimationDurationContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Insert anim. dur. (in seconds)"
+
+[node name="AlignContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/AlignContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_vertical = 0
+text = "Alignment:"
+
+[node name="alignment" type="OptionButton" parent="PanelContainer/MarginContainer/VBoxContainer/AlignContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+selected = 0
+item_count = 2
+popup/item_0/text = "Bottom Right"
+popup/item_0/id = 0
+popup/item_1/text = "Bottom Left"
+popup/item_1/id = 1
+
+[node name="submit" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 23
+text = "Push Notification"
+
+[connection signal="text_changed" from="PanelContainer/MarginContainer/VBoxContainer/TitleContainer/title" to="." method="_on_title_text_changed"]
+[connection signal="text_changed" from="PanelContainer/MarginContainer/VBoxContainer/BodyContainer/body" to="." method="_on_body_text_changed"]
+[connection signal="item_selected" from="PanelContainer/MarginContainer/VBoxContainer/IconContainer/icon" to="." method="_on_icon_item_selected"]
+[connection signal="text_changed" from="PanelContainer/MarginContainer/VBoxContainer/ActionsContainer/actions" to="." method="_on_actions_text_changed"]
+[connection signal="item_selected" from="PanelContainer/MarginContainer/VBoxContainer/ThemeContainer/VBoxContainer/theme_opt" to="." method="_on_theme_opt_item_selected"]
+[connection signal="text_changed" from="PanelContainer/MarginContainer/VBoxContainer/ThemeContainer/VBoxContainer/theme_custom" to="." method="_on_theme_custom_text_changed"]
+[connection signal="text_changed" from="PanelContainer/MarginContainer/VBoxContainer/DurationContainer/duration" to="." method="_on_duration_text_changed"]
+[connection signal="text_changed" from="PanelContainer/MarginContainer/VBoxContainer/AnimationDurationContainer/animation_duration" to="." method="_on_animation_duration_text_changed"]
+[connection signal="item_selected" from="PanelContainer/MarginContainer/VBoxContainer/AlignContainer/alignment" to="." method="_on_alignment_item_selected"]
+[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/submit" to="." method="_on_submit_pressed"]

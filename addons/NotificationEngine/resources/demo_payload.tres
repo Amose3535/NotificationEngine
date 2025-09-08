@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Payload" load_steps=4 format=3 uid="uid://dgumoml3v2gan"]
+
+[ext_resource type="Script" uid="uid://jq1pt4ybpwst" path="res://addons/NotificationEngine/scripts/payload.gd" id="1_iylbw"]
+[ext_resource type="Texture2D" uid="uid://deymaulxcau0q" path="res://icon.svg" id="1_su4bq"]
+[ext_resource type="Theme" uid="uid://55f37km4nsdd" path="res://addons/NotificationEngine/resources/themes/default.tres" id="2_dja0y"]
+
+[resource]
+script = ExtResource("1_iylbw")
+title_content = "Demo Payload Test"
+icon = ExtResource("1_su4bq")
+body_content = "This is a Demo payload, this is only meant to be used for testing purposes and is NOT meant to be used in the final product"
+actions = Array[Dictionary]([{
+"id": "dismiss_1",
+"label": "Dismiss"
+}])
+theme = ExtResource("2_dja0y")
+duration_seconds = 3.0
+animation_duration = 0.3
+sounds = Dictionary[String, AudioStream]({})
+metadata/_custom_type_script = "uid://jq1pt4ybpwst"
