@@ -1,0 +1,3 @@
+res://addons/NotificationEngine/plugin.gd
+res://addons/NotificationEngine/resources/themes/default.tres
+res://addons/NotificationEngine/examples/tests/test.tscn
